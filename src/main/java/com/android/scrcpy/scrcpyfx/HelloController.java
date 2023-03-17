@@ -41,13 +41,15 @@ public class HelloController implements Initializable {
     private String tempFilePath = "C:\\a.txt";
     private String packageName = "com.android.socket.adb";
     private String runMain = packageName + "/.MainActivity";
-    private String apkPath = "D:\\code\\AndroidCode\\SocketADB\\app\\build\\outputs\\apk\\release\\app-release.apk";
+    private String apkPath = "D:\\app-release.apk";
     private String message4Device = "";
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         try {
             tempFilePath = new File("." + File.separator + "packages.txt").getCanonicalPath();
+            apkPath = APKPath.apkPath;
+            System.out.println("apk路径:" + apkPath);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -153,7 +155,7 @@ public class HelloController implements Initializable {
                             isSuccess = true;
                             new Thread(() -> CommandExecution.execCommand("adb shell am start -n " + runMain)).start();
                         } else {
-                            updateText("准备安装通信服务");
+                            updateText("准备安装通信服务 " + apkPath);
                             CommandExecution.CommandResult commandResult = CommandExecution.execCommand("adb install " + toAndroidPath(apkPath));
                             updateText("安装服务 " + commandResult);
                         }
