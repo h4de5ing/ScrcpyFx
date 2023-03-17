@@ -2,17 +2,25 @@ package com.android.scrcpy.scrcpyfx;
 
 import com.android.scrcpy.scrcpyfx.change.ChangeListener;
 import com.android.scrcpy.scrcpyfx.utils.FileUtils;
+import com.android.scrcpy.scrcpyfx.utils.ToastUtil;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.*;
+import org.json.JSONObject;
 
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -30,16 +38,25 @@ public class HelloController implements Initializable {
     private boolean isConnect = false;
     private boolean isAuto = false;
     private List<String> devices = new ArrayList<>();
-    private String tempFile = "d:/a.txt";
-    private String tempFilePath = "D:\\a.txt";
+    private String tempFilePath = "C:\\a.txt";
     private String packageName = "com.android.socket.adb";
     private String runMain = packageName + "/.MainActivity";
-    private String apkPath = "D://app-release.apk";
+    private String apkPath = "D:\\code\\AndroidCode\\SocketADB\\app\\build\\outputs\\apk\\release\\app-release.apk";
+    private String message4Device = "";
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        try {
+            tempFilePath = new File("." + File.separator + "packages.txt").getCanonicalPath();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         auto.selectedProperty().addListener((observableValue, oldValue, newValue) -> isAuto = newValue);
         new ScheduledThreadPoolExecutor(1).scheduleAtFixedRate(mRunnable, 0, 3, TimeUnit.SECONDS);
+    }
+
+    private String toAndroidPath(String windowPath) {
+        return windowPath.replace("\\", "/");
     }
 
     private void connect() {
@@ -82,54 +99,74 @@ public class HelloController implements Initializable {
     }
 
     @FXML
+    protected void onCopyButtonClick() {
+        try {
+            JSONObject object = new JSONObject(message4Device);
+            String imei0 = object.getString("imei0");
+            String imei1 = object.getString("imei1");
+            if (!Objects.equals(imei0, "null")) {
+                setClipboardString(imei0);
+                ToastUtil.toast("imei0 复制成功");
+            } else if (!Objects.equals(imei1, "null")) {
+                setClipboardString(imei1);
+                ToastUtil.toast("imei1 复制成功");
+            }
+        } catch (Exception e) {
+            ToastUtil.toast("复制失败");
+            //e.printStackTrace();
+        }
+    }
+
+    @FXML
     protected void onGetInfoButtonClick() {
         new Thread(() -> {
             CommandExecution.CommandResult commandResult = CommandExecution.execCommand("adb forward tcp:18000 tcp:19000");
             updateText("端口转发" + commandResult);
         }).start();
-        new SocketTest(this::updateText);
+        new SocketTest(message -> {
+            message4Device = message;
+            updateText(message);
+        });
     }
 
     boolean isSuccess = false;
     Runnable mRunnable = () -> {
-        while (true) {
-            if (isAuto) {
-                connect();
-                if (devices.size() > 0) {
-                    if (!isSuccess) {
-                        updateText("查看通信服务是否安装成功1");
-                        File file = new File(tempFilePath);
-                        file.delete();
-                        new Thread(() -> CommandExecution.execCommand("adb shell pm list packages>" + tempFile)).start();
-                        try {
-                            Thread.sleep(2000);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                        updateText("查看通信服务是否安装成功2");
-                        if (file.exists()) {
-                            updateText(file.getAbsolutePath() + " 文件存在");
-                            String content = FileUtils.readFile(tempFile);
-                            if (content.contains("package:" + packageName)) {
-                                updateText("通信服务已安装");
-                                isSuccess = true;
-                                new Thread(() -> CommandExecution.execCommand("adb shell am start -n " + runMain)).start();
-                            } else {
-                                updateText("准备安装通信服务");
-                                CommandExecution.CommandResult commandResult = CommandExecution.execCommand("adb install " + apkPath);
-                                updateText("安装服务 " + commandResult);
-                            }
-                        } else {
-                            updateText(file.getAbsolutePath() + " 文件不存在");
-                        }
+        if (isAuto) {
+            connect();
+            if (devices.size() > 0) {
+                if (!isSuccess) {
+                    updateText("查看通信服务是否安装成功 1");
+                    File file = new File(tempFilePath);
+                    file.delete();
+                    new Thread(() -> CommandExecution.execCommand("adb shell pm list packages>" + toAndroidPath(tempFilePath))).start();
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
-                } else isSuccess = false;
-            }
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+                    updateText("查看通信服务是否安装成功 2");
+                    if (file.exists()) {
+                        updateText(file.getAbsolutePath() + " 文件存在");
+                        String content = FileUtils.readFile(tempFilePath);
+                        if (content.contains("package:" + packageName)) {
+                            updateText("通信服务已安装");
+                            isSuccess = true;
+                            new Thread(() -> CommandExecution.execCommand("adb shell am start -n " + runMain)).start();
+                        } else {
+                            updateText("准备安装通信服务");
+                            CommandExecution.CommandResult commandResult = CommandExecution.execCommand("adb install " + toAndroidPath(apkPath));
+                            updateText("安装服务 " + commandResult);
+                        }
+                    } else {
+                        updateText(file.getAbsolutePath() + " 文件不存在");
+                    }
+                }
+            } else isSuccess = false;
+        }
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     };
 
@@ -161,5 +198,40 @@ public class HelloController implements Initializable {
         information.setTitle("Error");
         information.setHeaderText(e.getMessage());
         information.showAndWait();
+    }
+
+    /**
+     * 把文本设置到剪贴板（复制）
+     */
+    public static void setClipboardString(String text) {
+        // 获取系统剪贴板
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        // 封装文本内容
+        Transferable trans = new StringSelection(text);
+        // 把文本内容设置到系统剪贴板
+        clipboard.setContents(trans, null);
+    }
+
+    /**
+     * 从剪贴板中获取文本（粘贴）
+     */
+    public static String getClipboardString() {
+        // 获取系统剪贴板
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        // 获取剪贴板中的内容
+        Transferable trans = clipboard.getContents(null);
+        if (trans != null) {
+            // 判断剪贴板中的内容是否支持文本
+            if (trans.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                try {
+                    // 获取剪贴板中的文本内容
+                    String text = (String) trans.getTransferData(DataFlavor.stringFlavor);
+                    return text;
+                } catch (Exception e) {
+                    //e.printStackTrace();
+                }
+            }
+        }
+        return null;
     }
 }
