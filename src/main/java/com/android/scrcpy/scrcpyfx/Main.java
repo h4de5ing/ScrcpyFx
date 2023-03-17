@@ -9,7 +9,6 @@ public class Main {
             }
             if (args.length > 0) APKPath.apkPath = args[0];
         } catch (Exception ignored) {
-            ignored.printStackTrace();
         }
         HelloApplication.main(args);
     }

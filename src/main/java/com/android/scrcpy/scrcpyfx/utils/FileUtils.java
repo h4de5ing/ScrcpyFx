@@ -61,9 +61,7 @@ public class FileUtils {
         StringBuilder sb = new StringBuilder();
         try {
             List<String> lines = Files.readAllLines(Paths.get(filename), StandardCharsets.UTF_8);
-            for (String line : lines) {
-                sb.append(line);
-            }
+            for (String line : lines) sb.append(line);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -90,9 +88,7 @@ public class FileUtils {
 
     public static StringBuilder readFile(File file, String charsetName) {
         StringBuilder fileContent = new StringBuilder();
-        if (file == null || !file.isFile()) {
-            return null;
-        }
+        if (file == null || !file.isFile()) return null;
         BufferedReader reader = null;
         try {
             InputStreamReader is = new InputStreamReader(new FileInputStream(file), charsetName);
@@ -126,16 +122,16 @@ public class FileUtils {
     }
 
     public static void copyFileFast(File in, File out) {
-        FileChannel filein = null;
-        FileChannel fileout = null;
+        FileChannel fileIn = null;
+        FileChannel fileOut = null;
         try {
-            filein = new FileInputStream(in).getChannel();
-            fileout = new FileOutputStream(out).getChannel();
-            filein.transferTo(0, filein.size(), fileout);
+            fileIn = new FileInputStream(in).getChannel();
+            fileOut = new FileOutputStream(out).getChannel();
+            fileIn.transferTo(0, fileIn.size(), fileOut);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            closeIO(filein, fileout);
+            closeIO(fileIn, fileOut);
         }
     }
 
@@ -195,20 +191,14 @@ public class FileUtils {
 
     public static boolean createFolder(String filePath, boolean recreate) {
         String folderName = getFolderName(filePath);
-        if (folderName == null || folderName.length() == 0 || folderName.trim().length() == 0) {
-            return false;
-        }
+        if (folderName == null || folderName.length() == 0 || folderName.trim().length() == 0) return false;
         File folder = new File(folderName);
         if (folder.exists()) {
             if (recreate) {
                 deleteFile(folderName);
                 return folder.mkdirs();
-            } else {
-                return true;
-            }
-        } else {
-            return folder.mkdirs();
-        }
+            } else return true;
+        } else return folder.mkdirs();
     }
 
 
@@ -218,16 +208,14 @@ public class FileUtils {
     }
 
     public static String getFolderName(String filePath) {
-        if (filePath == null || filePath.length() == 0 || filePath.trim().length() == 0) {
-            return filePath;
-        }
+        if (filePath == null || filePath.length() == 0 || filePath.trim().length() == 0) return filePath;
         int filePos = filePath.lastIndexOf(File.separator);
         return (filePos == -1) ? "" : filePath.substring(0, filePos);
     }
 
     public static ArrayList<File> getFilesArray(String path) {
         File file = new File(path);
-        File files[] = file.listFiles();
+        File[] files = file.listFiles();
         ArrayList<File> listFile = new ArrayList<>();
         if (files != null) {
             for (File value : files) {
