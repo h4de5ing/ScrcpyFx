@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class CommandExecution {
-    public final static String COMMAND_SH = "sh";
     public final static String COMMAND_EXIT = "exit\n";
     public final static String COMMAND_LINE_END = "\n";
 
@@ -59,7 +58,7 @@ public class CommandExecution {
         StringBuilder successMsg;
         StringBuilder errorMsg;
         try {
-            process = Runtime.getRuntime().exec(COMMAND_SH);
+            process = Runtime.getRuntime().exec("cmd");
             os = new DataOutputStream(process.getOutputStream());
             for (String command : commands) {
                 if (command != null) {
